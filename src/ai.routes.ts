@@ -5,6 +5,8 @@ import { isNonEmptyString } from "./validate";
 
 export const aiRouter = Router();
 
+const aiEnabled = (process.env.AI_ENABLED ?? "true").toLowerCase() === "true";
+
 aiRouter.post("/generate-description", async (req, res, next) => {
   try {
     const { productId, features } = req.body ?? {};
@@ -21,6 +23,9 @@ aiRouter.post("/generate-description", async (req, res, next) => {
       return res
         .status(400)
         .json({ lok: false, error: "features be a non-empty string[]" });
+    }
+    if (!aiEnabled) {
+      return res.status(503).json({ ok: false, error: "AI_DISABLED" });
     }
     const p = await pool.query(`SELECT id, name FROM products WHERE id = $1`, [
       productId,
@@ -53,5 +58,7 @@ aiRouter.post("/generate-description", async (req, res, next) => {
     );
 
     res.json({ ok: true, ai, product: updated.rows[0] });
-  } catch (err) {}
+  } catch (err) {
+    next(err);
+  }
 });

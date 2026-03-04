@@ -1,19 +1,13 @@
-import "dotenv/config";
+//import "dotenv/config";
 import express from "express";
 import { pool } from "./db";
 import { productsRouter } from "./products.routes";
 import { aiRouter } from "./ai.routes";
+import { inventoryRouter } from "./inventory.routes";
+import { ordersRouter } from "./orders.routes";
 
 const app = express();
 app.use(express.json());
-
-app.get("/health", (_req, res) => {
-  res.json({
-    ok: true,
-    service: "smartcart-api",
-    time: new Date().toISOString(),
-  });
-});
 
 app.get("/db/ping", async (_req, res) => {
   const result = await pool.query("SELECT NOW() as now");
@@ -27,6 +21,7 @@ app.get("/db/products-count", async (_req, res) => {
 
 app.use("/products", productsRouter);
 app.use("/ai", aiRouter);
+app.use("/inventory", inventoryRouter);
+app.use("/orders", ordersRouter);
 
-const PORT = Number(process.env.PORT ?? 3000);
-app.listen(PORT, () => console.log(`http://localhost:${PORT}`));
+export default app;

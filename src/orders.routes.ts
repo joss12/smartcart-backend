@@ -1,16 +1,16 @@
 import { Router } from "express";
 import { pool } from "./db";
 import { isInt, isNonEmptyString } from "./validate";
-import { requireAdmin, requireAuth } from "./auth.middleware";
+import { requireAuth, type AuthedRequest } from "./auth.middleware";
 
 export const ordersRouter = Router();
 
 type CreatedOrderBody = {
-  curreny?: string;
+  currency?: string;
   items: Array<{ productId: string; qty: number }>;
 };
 
-ordersRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
+ordersRouter.post("/", requireAuth, async (req: AuthedRequest, res, next) => {
   const body = (req.body ?? {}) as CreatedOrderBody;
 
   try {
@@ -52,8 +52,10 @@ ordersRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
 
       //Create empty orderw first
       const orderRes = await client.query(
-        `INSERT INTO orders (status, total_cents, currency) VALUES ('created', 0, COALESCE($1,'USD')) RETURNING id, currency, status, created_at`,
-        [body.curreny ?? null],
+        `INSERT INTO orders (user_id, status, total_cents, currency)
+   VALUES ($1, 'created', 0, COALESCE($2,'USD'))
+   RETURNING id, user_id, currency, status, created_at`,
+        [req.user!.id, body.currency ?? null],
       );
 
       const order = orderRes.rows[0] as {
@@ -172,6 +174,27 @@ ordersRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
     return next(err);
   }
 });
+
+ordersRouter.get(
+  "/my/orders",
+  requireAuth,
+  async (req: AuthedRequest, res, next) => {
+    try {
+      const r = await pool.query(
+        `SELECT id, status, total_cents, currency, created_at
+       FROM orders
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT 50`,
+        [req.user!.id],
+      );
+
+      res.json({ ok: true, items: r.rows });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 ordersRouter.get("/:id", async (req, res, next) => {
   try {

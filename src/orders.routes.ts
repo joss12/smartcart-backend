@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "./db";
 import { isInt, isNonEmptyString } from "./validate";
+import { requireAdmin, requireAuth } from "./auth.middleware";
 
 export const ordersRouter = Router();
 
@@ -9,7 +10,7 @@ type CreatedOrderBody = {
   items: Array<{ productId: string; qty: number }>;
 };
 
-ordersRouter.post("/", async (req, res, next) => {
+ordersRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
   const body = (req.body ?? {}) as CreatedOrderBody;
 
   try {
@@ -27,12 +28,10 @@ ordersRouter.post("/", async (req, res, next) => {
           .json({ ok: false, error: "each itemp.productId id required" });
       }
       if (!isInt(it.qty) || it.qty <= 0) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: "each item.qty must be a positve integer",
-          });
+        return res.status(400).json({
+          ok: false,
+          error: "each item.qty must be a positve integer",
+        });
       }
     }
 
@@ -171,5 +170,69 @@ ordersRouter.post("/", async (req, res, next) => {
         .json({ ok: false, error: "CURRENCY_MISMATCH", details: msg });
     }
     return next(err);
+  }
+});
+
+ordersRouter.get("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const orderRes = await pool.query(
+      `SELECT id, status, total_cents, currency, created_at
+            FROM orders
+            WHERE id = $1
+            `,
+      [id],
+    );
+    if (orderRes.rows.length === 0) {
+      return res.status(404).json({ ok: false, error: "ORDER_NOT_FOUND" });
+    }
+
+    const itemsRes = await pool.query(
+      `SELECT product_id, qty, unit_price_cents, line_total_cents
+            FROM order_items
+            WHERE order_id = $1
+            ORDER BY id
+            `,
+      [id],
+    );
+
+    res.json({
+      ok: true,
+      order: {
+        ...orderRes.rows[0],
+        items: itemsRes.rows,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+ordersRouter.post("/:id/pay", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const r = await pool.query(
+      `UPDATE orders
+            SET status = 'paid'
+            WHERE id = $1 AND status = 'created'
+            RETURNING id, status, total_cents, currency
+            `,
+      [id],
+    );
+
+    if (r.rows.length === 0) {
+      return res.status(400).json({
+        ok: false,
+        error: "ORDER_NOT_PAYABLE",
+      });
+    }
+    res.json({
+      ok: true,
+      order: r.rows[0],
+    });
+  } catch (err) {
+    next(err);
   }
 });

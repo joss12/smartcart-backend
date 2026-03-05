@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { pool } from "./db";
 import { isCurrency3, isInt, isNonEmptyString } from "./validate";
+import { requireAdmin, requireAuth } from "./auth.middleware";
 
 export const productsRouter = Router();
 
-productsRouter.post("/", async (req, res, next) => {
+productsRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const { name, price_cents, currency, description } = req.body ?? {};
 
@@ -12,20 +13,16 @@ productsRouter.post("/", async (req, res, next) => {
       return res.status(400).json({ ok: false, error: "name is required" });
     }
     if (!isInt(price_cents) || price_cents < 0) {
-      return res
-        .status(400)
-        .json({
-          ok: false,
-          error: "price_cents must be a non-negative integer",
-        });
+      return res.status(400).json({
+        ok: false,
+        error: "price_cents must be a non-negative integer",
+      });
     }
     if (currency !== undefined && !isCurrency3(currency)) {
-      return res
-        .status(400)
-        .json({
-          ok: false,
-          error: "currency must be 3 uppercase letters (e.g. USD)",
-        });
+      return res.status(400).json({
+        ok: false,
+        error: "currency must be 3 uppercase letters (e.g. USD)",
+      });
     }
     if (description !== undefined && typeof description !== "string") {
       return res

@@ -10,6 +10,14 @@ import { authRouter } from "./auth.routes";
 const app = express();
 app.use(express.json());
 
+app.get("/health", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "smartcart-api",
+    time: new Date().toISOString(),
+  });
+});
+
 app.get("/db/ping", async (_req, res) => {
   const result = await pool.query("SELECT NOW() as now");
   res.json({ ok: true, now: result.rows[0].now });

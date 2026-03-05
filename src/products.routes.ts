@@ -2,48 +2,66 @@ import { Router } from "express";
 import { pool } from "./db";
 import { isCurrency3, isInt, isNonEmptyString } from "./validate";
 import { requireAdmin, requireAuth } from "./auth.middleware";
+import { z } from "zod";
+import { validateBody } from "./utils/validateBody";
 
 export const productsRouter = Router();
 
-productsRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
-  try {
-    const { name, price_cents, currency, description } = req.body ?? {};
+const createProductSchema = z.object({
+  name: z.string().trim().min(1, "name is required").max(200),
+  price_cents: z.number().int().min(0),
+  currency: z
+    .string()
+    .regex(/^[A-Z]{3}$/)
+    .optional(),
+  description: z.string().max(2000).optional(),
+});
 
-    if (!isNonEmptyString(name)) {
-      return res.status(400).json({ ok: false, error: "name is required" });
-    }
-    if (!isInt(price_cents) || price_cents < 0) {
-      return res.status(400).json({
-        ok: false,
-        error: "price_cents must be a non-negative integer",
-      });
-    }
-    if (currency !== undefined && !isCurrency3(currency)) {
-      return res.status(400).json({
-        ok: false,
-        error: "currency must be 3 uppercase letters (e.g. USD)",
-      });
-    }
-    if (description !== undefined && typeof description !== "string") {
-      return res
-        .status(400)
-        .json({ ok: false, error: "description must be a string" });
-    }
+productsRouter.post(
+  "/",
+  requireAuth,
+  requireAdmin,
+  validateBody(createProductSchema),
+  async (req, res, next) => {
+    try {
+      const { name, price_cents, currency, description } = req.body;
 
-    const r = await pool.query(
-      `
+      if (!isNonEmptyString(name)) {
+        return res.status(400).json({ ok: false, error: "name is required" });
+      }
+      if (!isInt(price_cents) || price_cents < 0) {
+        return res.status(400).json({
+          ok: false,
+          error: "price_cents must be a non-negative integer",
+        });
+      }
+      if (currency !== undefined && !isCurrency3(currency)) {
+        return res.status(400).json({
+          ok: false,
+          error: "currency must be 3 uppercase letters (e.g. USD)",
+        });
+      }
+      if (description !== undefined && typeof description !== "string") {
+        return res
+          .status(400)
+          .json({ ok: false, error: "description must be a string" });
+      }
+
+      const r = await pool.query(
+        `
       INSERT INTO products (name, price_cents, currency, description)
       VALUES ($1, $2, COALESCE($3, 'USD'), $4)
       RETURNING id, name, price_cents, currency, description, created_at
       `,
-      [name.trim(), price_cents, currency ?? null, description ?? null],
-    );
+        [name.trim(), price_cents, currency ?? null, description ?? null],
+      );
 
-    return res.status(201).json({ ok: true, product: r.rows[0] });
-  } catch (err) {
-    next(err);
-  }
-});
+      return res.status(201).json({ ok: true, product: r.rows[0] });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 productsRouter.get("/", async (req, res, next) => {
   try {

@@ -8,12 +8,12 @@ import { aiRouter } from "./ai.routes";
 import { inventoryRouter } from "./inventory.routes";
 import { ordersRouter } from "./orders.routes";
 import { authRouter } from "./auth.routes";
-import { requestLogger } from "./middleware/requestLogger";
 import { requestId } from "./middleware/requestId";
 
 import fs from "node:fs";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yaml";
+import { httpLogger } from "./httpLogger";
 
 const app = express();
 app.use(express.json());
@@ -23,8 +23,9 @@ const openapiDoc = YAML.parse(openapiText);
 
 app.use(helmet());
 app.use(requestId);
-app.use(requestLogger);
+//app.use(requestLogger);
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapiDoc));
+app.use(httpLogger);
 
 app.use(
   rateLimit({
@@ -68,9 +69,17 @@ app.use((req, res) => {
   });
 });
 
-app.use((err: any, _req: any, res: any, _next: any) => {
-  console.error(err);
-  res.status(500).json({
+app.use((err: any, req: any, res: any, _next: any) => {
+  req.log?.error(
+    {
+      err,
+      path: req.originalUrl,
+      method: req.method,
+    },
+    "request failed",
+  );
+
+  res.satus(500).json({
     ok: false,
     error: "INTERNAL_ERROR",
     message:

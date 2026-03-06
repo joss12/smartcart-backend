@@ -1,0 +1,69 @@
+openapi: 3.0.3
+info:
+  title: SmartCart API
+  version: 1.0.0
+servers:
+  - url: /
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /products:
+    get:
+      summary: List products
+      responses:
+        "200":
+          description: OK
+    post:
+      summary: Create product (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, price_cents]
+              properties:
+                name: { type: string }
+                price_cents: { type: integer }
+                currency: { type: string }
+                description: { type: string }
+      responses:
+        "201":
+          description: Created
+  /orders:
+    post:
+      summary: Create order (auth)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                currency: { type: string }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [productId, qty]
+                    properties:
+                      productId: { type: string }
+                      qty: { type: integer }
+      responses:
+        "201":
+          description: Created
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

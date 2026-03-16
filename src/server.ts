@@ -1,30 +1,40 @@
-//import "dotenv/config";
+import "dotenv/config";
 import express from "express";
+import path from "path";
 import helmet from "helmet";
+import cors from "cors";
 import rateLimit from "express-rate-limit";
-import { pool } from "./db";
-import { productsRouter } from "./products.routes";
-import { aiRouter } from "./ai.routes";
-import { inventoryRouter } from "./inventory.routes";
-import { ordersRouter } from "./orders.routes";
-import { authRouter } from "./auth.routes";
-import { requestId } from "./middleware/requestId";
-
-import fs from "node:fs";
 import swaggerUi from "swagger-ui-express";
+import fs from "node:fs";
 import YAML from "yaml";
-import { httpLogger } from "./httpLogger";
 
-const app = express();
-app.use(express.json());
+import { healthRouter } from "./routes/health.routes";
+import { authRouter } from "./routes/auth.routes";
+import { productsRouter } from "./routes/products.routes";
+import { ordersRouter } from "./routes/orders.routes";
+import { auditRouter } from "./routes/audit.routes";
+import { webhooksRouter } from "./routes/webhooks.routes";
+import { productImagesRouter } from "./routes/product-images.routes";
+
+import { errorHandler, notFoundHandler } from "./middleware/error.middleware";
+import { requestIdMiddleware } from "./middleware/request-id.middleware";
+import { httpLogger } from "./httpLogger";
 
 const openapiText = fs.readFileSync("openapi.yaml", "utf8");
 const openapiDoc = YAML.parse(openapiText);
 
+export const app = express();
+
+app.use(requestIdMiddleware);
+app.use(express.json());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(helmet());
-app.use(requestId);
-//app.use(requestLogger);
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapiDoc));
 app.use(httpLogger);
 
 app.use(
@@ -36,57 +46,30 @@ app.use(
   }),
 );
 
-app.get("/health", (_req, res) => {
+app.use("/uploads", express.static(path.resolve("uploads")));
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapiDoc));
+
+app.use("/health", healthRouter);
+app.use("/auth", authRouter);
+app.use("/products", productsRouter);
+app.use("/products", productImagesRouter);
+app.use("/orders", ordersRouter);
+app.use("/audit", auditRouter);
+app.use("/webhooks", webhooksRouter);
+
+app.get("/", (_req, res) => {
   res.json({
     ok: true,
-    service: "smartcart-api",
-    time: new Date().toISOString(),
+    name: "SmartCart API",
+    endpoints: [
+      "/health/live",
+      "/health/ready",
+      "/products",
+      "/orders",
+      "/docs",
+    ],
   });
 });
 
-app.get("/db/ping", async (_req, res) => {
-  const result = await pool.query("SELECT NOW() as now");
-  res.json({ ok: true, now: result.rows[0].now });
-});
-
-app.get("/db/products-count", async (_req, res) => {
-  const r = await pool.query("SELECT COUNT(*)::int as count FROM products");
-  res.json({ ok: true, count: r.rows[0].count });
-});
-
-app.use("/products", productsRouter);
-app.use("/ai", aiRouter);
-app.use("/inventory", inventoryRouter);
-app.use("/orders", ordersRouter);
-app.use("/:id/pay", ordersRouter);
-app.use("/auth", authRouter);
-
-app.use((req, res) => {
-  res.status(404).json({
-    ok: false,
-    error: "ROUTE_NOT_FOUND",
-    path: req.originalUrl,
-  });
-});
-
-app.use((err: any, req: any, res: any, _next: any) => {
-  req.log?.error(
-    {
-      err,
-      path: req.originalUrl,
-      method: req.method,
-    },
-    "request failed",
-  );
-
-  res.satus(500).json({
-    ok: false,
-    error: "INTERNAL_ERROR",
-    message:
-      process.env.NODE_ENV === "production"
-        ? undefined
-        : String(err?.message ?? err),
-  });
-});
-
-export { app };
+app.use(notFoundHandler);
+app.use(errorHandler);

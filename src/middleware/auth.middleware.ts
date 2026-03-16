@@ -1,9 +1,6 @@
-import type { Request, Response, NextFunction } from "express";
-import { verifyToken } from "./auth";
-
-export type AuthedRequest = Request & {
-  user?: { id: string; role: "user" | "admin" };
-};
+import type { Response, NextFunction } from "express";
+import type { AuthedRequest } from "../types/auth.types";
+import { verifyToken } from "../services/auth.service";
 
 export function requireAuth(
   req: AuthedRequest,
@@ -19,7 +16,7 @@ export function requireAuth(
 
   try {
     const payload = verifyToken(token);
-    req.user = { id: payload.id, role: payload.role as any };
+    req.user = { id: payload.id, role: payload.role as "user" | "admin" };
     return next();
   } catch {
     return res.status(401).json({ ok: false, error: "INVALID_TOKEN" });
@@ -31,9 +28,13 @@ export function requireAdmin(
   res: Response,
   next: NextFunction,
 ) {
-  if (!req.user)
+  if (!req.user) {
     return res.status(401).json({ ok: false, error: "UNAUTHORIZED" });
-  if (req.user.role !== "admin")
+  }
+
+  if (req.user.role !== "admin") {
     return res.status(403).json({ ok: false, error: "FORBIDDEN" });
+  }
+
   return next();
 }

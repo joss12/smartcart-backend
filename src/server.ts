@@ -21,7 +21,10 @@ import { requestIdMiddleware } from "./middleware/request-id.middleware";
 import { httpLogger } from "./httpLogger";
 import { cartRouter } from "./routes/cart.routes";
 
-const openapiText = fs.readFileSync("openapi.yaml", "utf8");
+const openapiText = fs.readFileSync(
+  path.resolve(__dirname, "../openapi.yaml"),
+  "utf8",
+);
 const openapiDoc = YAML.parse(openapiText);
 
 export const app = express();

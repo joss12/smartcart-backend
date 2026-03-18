@@ -85,12 +85,17 @@ export async function createOrder(input: {
     await updateOrderTotal(client, order.id, totalCents);
     await client.query("COMMIT");
 
+    const { findUserById } = await import("../repositories/users.repository");
+    const user = await findUserById(input.userId);
+
     await orderQueue.add(
       "order-confirmation",
       {
         orderId: order.id,
         userId: input.userId,
+        userEmail: user?.email ?? "",
         totalCents,
+        currency: order.currency,
       },
       {
         attempts: 3,

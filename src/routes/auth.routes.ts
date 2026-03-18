@@ -25,6 +25,7 @@ import {
   resetPasswordHandler,
   verifyEmailHandler,
 } from "../controllers/audit.controller";
+import crypto from "node:crypto";
 
 export const authRouter = Router();
 

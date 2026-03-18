@@ -11,6 +11,8 @@ import {
   deleteRefreshTokensByUser,
 } from "../repositories/refresh-tokens.repository";
 import { logAuditEvent } from "./audit.service";
+import crypto from "node:crypto";
+import { sendVerificationEmail } from "../routes/auth.routes";
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "dev_secret";
 
@@ -36,12 +38,10 @@ export async function verifyPassword(password: string, hash: string) {
 
 export async function register(input: { email: string; password: string }) {
   const passwordHash = await hashPassword(input.password);
-
   const user = await createUser({
     email: input.email,
     passwordHash,
   });
-
   await logAuditEvent({
     eventType: "user.registered",
     actorUserId: user.id,
@@ -49,6 +49,11 @@ export async function register(input: { email: string; password: string }) {
     entityId: user.id,
     metadata: { email: user.email },
   });
+
+  // Send verification email (non-blocking — don't fail registration if email fails)
+  sendVerificationEmail(user).catch((err) =>
+    console.error("Failed to send verification email:", err),
+  );
 
   return user;
 }

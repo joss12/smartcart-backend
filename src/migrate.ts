@@ -1,7 +1,7 @@
 import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
-import { pool } from "./db";
+import { pool } from "./lib/db";
 
 async function main() {
   const migrationsDir = path.join(process.cwd(), "migrations");

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { generateProductDescription } from "./ai";
-import { pool } from "./db";
+import { pool } from "./lib/db";
 import { isNonEmptyString } from "./validate";
 
 export const aiRouter = Router();

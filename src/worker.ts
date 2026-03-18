@@ -1,4 +1,5 @@
 import { Worker } from "bullmq";
+import { sendMail } from "./lib/mailer";
 import sharp from "sharp";
 import path from "path";
 
@@ -12,14 +13,16 @@ const worker = new Worker(
     console.log("Processing job:", job.name, job.data);
 
     if (job.name === "order-confirmation") {
-      const { orderId, userId, totalCents } = job.data;
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      console.log("Order confirmation processed", {
-        orderId,
-        userId,
-        totalCents,
+      const { orderId, userEmail, totalCents, currency } = job.data;
+      await sendMail({
+        to: userEmail,
+        subject: "Your SmartCart order is confirmed",
+        html: `
+      <h2>Order Confirmed!</h2>
+      <p>Your order <strong>${orderId}</strong> has been placed successfully.</p>
+      <p>Total: <strong>${currency} ${(totalCents / 100).toFixed(2)}</strong></p>
+      <p>We'll notify you when payment is received.</p>
+    `,
       });
       return;
     }
@@ -38,15 +41,16 @@ const worker = new Worker(
     }
 
     if (job.name === "payment-received") {
-      const { orderId, userId, totalCents, currency } = job.data;
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      console.log("Payment received", {
-        orderId,
-        userId,
-        totalCents,
-        currency,
+      const { orderId, userEmail, totalCents, currency } = job.data;
+      await sendMail({
+        to: userEmail,
+        subject: "Payment received for your SmartCart order",
+        html: `
+      <h2>Payment Received!</h2>
+      <p>We've received your payment for order <strong>${orderId}</strong>.</p>
+      <p>Total paid: <strong>${currency} ${(totalCents / 100).toFixed(2)}</strong></p>
+      <p>Thank you for shopping with SmartCart!</p>
+    `,
       });
       return;
     }

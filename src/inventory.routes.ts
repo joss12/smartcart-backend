@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { pool } from "./db";
+import { pool } from "./lib/db";
 import { isInt, isNonEmptyString } from "./validate";
-import { requireAdmin, requireAuth } from "./auth.middleware";
+import { requireAdmin, requireAuth } from "./middleware/auth.middleware";
 
 export const inventoryRouter = Router();
 

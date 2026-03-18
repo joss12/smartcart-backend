@@ -6,17 +6,19 @@ import { app } from "./server";
 const PORT = Number(process.env.PORT ?? 3000);
 
 async function start() {
+  // Listen first so Render detects the port immediately
+  app.listen(PORT, () => {
+    logger.info({ port: PORT }, "server started");
+  });
+
+  // Then connect Redis — log error but don't crash the process
   try {
     if (!redis.isOpen) {
       await redis.connect();
+      logger.info("Redis connected");
     }
-
-    app.listen(PORT, () => {
-      logger.info({ port: PORT }, "server started");
-    });
   } catch (err) {
-    console.error("Failed to start server:", err);
-    process.exit(1);
+    logger.error({ err }, "Redis connection failed");
   }
 }
 
@@ -25,6 +27,3 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 export { app };
-
-//export { app };
-//app.listen(PORT, () => console.log(`http://localhost:${PORT}`));

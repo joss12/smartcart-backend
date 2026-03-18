@@ -3,8 +3,16 @@ import { sendMail } from "./lib/mailer";
 import sharp from "sharp";
 import path from "path";
 
+import { URL } from "url";
+
+const rawUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
+const parsed = new URL(rawUrl);
+
 const connection = {
-  url: process.env.REDIS_URL ?? "redis://localhost:6379",
+  host: parsed.hostname,
+  port: Number(parsed.port),
+  password: parsed.password || undefined,
+  tls: parsed.protocol === "rediss:" ? {} : undefined,
 };
 
 const worker = new Worker(

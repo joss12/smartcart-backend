@@ -6,12 +6,10 @@ import { app } from "./server";
 const PORT = Number(process.env.PORT ?? 3000);
 
 async function start() {
-  // Listen first so Render detects the port immediately
   app.listen(PORT, () => {
     logger.info({ port: PORT }, "server started");
   });
 
-  // Then connect Redis — log error but don't crash the process
   try {
     if (!redis.isOpen) {
       await redis.connect();

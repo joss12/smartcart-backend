@@ -20,6 +20,7 @@ import { errorHandler, notFoundHandler } from "./middleware/error.middleware";
 import { requestIdMiddleware } from "./middleware/request-id.middleware";
 import { httpLogger } from "./httpLogger";
 import { cartRouter } from "./routes/cart.routes";
+import { adminRouter } from "./routes/admin.routes";
 
 const openapiText = fs.readFileSync(
   path.resolve(__dirname, "../openapi.yaml"),
@@ -61,6 +62,7 @@ app.use("/orders", ordersRouter);
 app.use("/audit", auditRouter);
 app.use("/webhooks", webhooksRouter);
 app.use("/cart", cartRouter);
+app.use("/admin", adminRouter);
 
 app.get("/", (_req, res) => {
   res.json({

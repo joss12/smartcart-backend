@@ -5,3 +5,4 @@ dist
 .git
 .github
 coverage
+admin_commands.txt

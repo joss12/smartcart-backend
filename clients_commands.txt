@@ -1,0 +1,159 @@
+Client flow:
+
+# Register
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "newuser@gmail.com", "password": "password123" }'
+
+# Verify email (get token from inbox then paste it below)
+curl http://localhost:3000/auth/verify-email/TOKEN_FROM_EMAIL
+
+# Try invalid token (should fail)
+curl http://localhost:3000/auth/verify-email/invalidtoken123
+
+# Try same token again (should fail — already used)
+curl http://localhost:3000/auth/verify-email/TOKEN_FROM_EMAIL
+
+# Login
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "newuser@gmail.com", "password": "password123" }'
+
+# Save the accessToken as TOKEN, then:
+
+# Forgot password
+curl -X POST http://localhost:3000/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "newuser@gmail.com" }'
+
+# Reset password (use token from email)
+curl -X POST http://localhost:3000/auth/reset-password/TOKEN_FROM_EMAIL \
+  -H "Content-Type: application/json" \
+  -d '{ "password": "newpassword123" }'
+
+# Login with new password
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "newuser@gmail.com", "password": "newpassword123" }'
+
+# Health
+curl http://localhost:3000/health/live
+curl http://localhost:3000/health/ready
+
+# List products
+curl http://localhost:3000/products
+
+# List products with pagination
+curl "http://localhost:3000/products?limit=5"
+
+# Get single product
+curl http://localhost:3000/products/2109193c-a7a1-46f7-b27d-f1b6a5249ba6
+
+# Add to cart
+curl -X POST http://localhost:3000/cart/items \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "productId": "2109193c-a7a1-46f7-b27d-f1b6a5249ba6", "qty": 2 }'
+
+# Get cart
+curl http://localhost:3000/cart \
+  -H "Authorization: Bearer TOKEN"
+
+# Update cart item qty
+curl -X PATCH http://localhost:3000/cart/items/2109193c-a7a1-46f7-b27d-f1b6a5249ba6 \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "qty": 3 }'
+
+# Get cart again to confirm update
+curl http://localhost:3000/cart \
+  -H "Authorization: Bearer TOKEN"
+
+# Remove cart item
+curl -X DELETE http://localhost:3000/cart/items/2109193c-a7a1-46f7-b27d-f1b6a5249ba6 \
+  -H "Authorization: Bearer TOKEN"
+
+# Checkout empty cart (should fail)
+curl -X POST http://localhost:3000/cart/checkout \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "currency": "USD" }'
+
+# Add item back
+curl -X POST http://localhost:3000/cart/items \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "productId": "2109193c-a7a1-46f7-b27d-f1b6a5249ba6", "qty": 1 }'
+
+# Checkout
+curl -X POST http://localhost:3000/cart/checkout \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "currency": "USD" }'
+
+# Save the order id as ORDER_ID, then:
+
+# Get order
+curl http://localhost:3000/orders/ORDER_ID \
+  -H "Authorization: Bearer TOKEN"
+
+# My orders
+curl http://localhost:3000/orders/my/orders \
+  -H "Authorization: Bearer TOKEN"
+
+# My orders with pagination
+curl "http://localhost:3000/orders/my/orders?limit=5" \
+  -H "Authorization: Bearer TOKEN"
+
+# Cancel order
+curl -X PATCH http://localhost:3000/orders/ORDER_ID/cancel \
+  -H "Authorization: Bearer TOKEN"
+
+# Try to cancel again (should fail)
+curl -X PATCH http://localhost:3000/orders/ORDER_ID/cancel \
+  -H "Authorization: Bearer TOKEN"
+
+# Create new order for payment test
+curl -X POST http://localhost:3000/cart/items \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "productId": "2109193c-a7a1-46f7-b27d-f1b6a5249ba6", "qty": 1 }'
+
+curl -X POST http://localhost:3000/cart/checkout \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "currency": "USD" }'
+
+# Save new ORDER_ID then pay via webhook
+curl -X POST http://localhost:3000/webhooks/payment \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-signature: super_secret_webhook_key" \
+  -H "x-webhook-id: evt_final_001" \
+  -d '{ "orderId": "ORDER_ID", "status": "paid" }'
+
+# Try duplicate webhook (should return already_processed)
+curl -X POST http://localhost:3000/webhooks/payment \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-signature: super_secret_webhook_key" \
+  -H "x-webhook-id: evt_final_001" \
+  -d '{ "orderId": "ORDER_ID", "status": "paid" }'
+
+# Try wrong signature (should fail 401)
+curl -X POST http://localhost:3000/webhooks/payment \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-signature: wrong_secret" \
+  -H "x-webhook-id: evt_final_002" \
+  -d '{ "orderId": "ORDER_ID", "status": "paid" }'
+
+# Try to cancel paid order (should fail)
+curl -X PATCH http://localhost:3000/orders/ORDER_ID/cancel \
+  -H "Authorization: Bearer TOKEN"
+
+# Refresh token
+curl -X POST http://localhost:3000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{ "refreshToken": "YOUR_REFRESH_TOKEN" }'
+
+# Logout
+curl -X POST http://localhost:3000/auth/logout \
+  -H "Authorization: Bearer TOKEN"

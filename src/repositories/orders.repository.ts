@@ -129,3 +129,43 @@ export async function markOrderPaid(orderId: string) {
   );
   return r.rows[0] ?? null;
 }
+
+export async function cancelOrder(orderId: string, userId: string) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+    //Lock the order, only cancel if it belongs to user and is in 'create' status
+    const r = await client.query(
+      `UPDATE orders SET status = 'cancelled'
+       WHERE id = $1 AND user_id = $2 AND status = 'created'
+       RETURNING id, user_id, total_cents, currency, status`,
+      [orderId, userId],
+    );
+
+    const order = r.rows[0];
+    if (!order) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    //Restore stock for each item
+    const items = await client.query(
+      `SELECT product_id, qty FROM order_items WHERE order_id = $1`,
+      [orderId],
+    );
+    for (const item of items.rows) {
+      await client.query(
+        `UPDATE products SET stock = stock + $2, updated_at = now() WHERE id = $1`,
+        [item.product_id, item.qty],
+      );
+    }
+    await client.query("COMMIT");
+    return order;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}

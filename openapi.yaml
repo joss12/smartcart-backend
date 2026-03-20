@@ -566,6 +566,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /orders/{id}/cancel:
+    patch:
+      summary: Cancel an order
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Order cancelled and stock restored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  order:
+                    $ref: "#/components/schemas/Order"
+        "400":
+          description: Order cannot be cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+
   /webhooks/payment:
     post:
       summary: Handle payment webhook

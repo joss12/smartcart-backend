@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth.middleware";
 import { validateBody } from "../utils/validateBody";
 import {
+  cancelOrderHandler,
   createOrderHandler,
   getOrderHandler,
   myOrdersHandler,
@@ -35,3 +36,4 @@ ordersRouter.post(
   createOrderHandler,
 );
 ordersRouter.post("/:id/pay", requireAuth, payOrderHandler);
+ordersRouter.patch("/:id/cancel", requireAuth, cancelOrderHandler);

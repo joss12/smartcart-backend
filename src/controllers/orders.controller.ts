@@ -1,6 +1,11 @@
 import type { Response, NextFunction } from "express";
 import type { AuthedRequest } from "../types/auth.types";
-import { createOrder, getOrder, getMyOrders } from "../services/orders.service";
+import {
+  createOrder,
+  getOrder,
+  getMyOrders,
+  cancelMyOrder,
+} from "../services/orders.service";
 import { markOrderPaid } from "../repositories/orders.repository";
 
 export async function createOrderHandler(
@@ -77,6 +82,28 @@ export async function payOrderHandler(
     const order = await markOrderPaid(req.params.id as string);
     if (!order) {
       return res.status(400).json({ ok: false, error: "ORDER_NOT_PAYABLE" });
+    }
+    return res.json({ ok: true, order });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function cancelOrderHandler(
+  req: AuthedRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const order = await cancelMyOrder({
+      orderId: req.params.id as string,
+      userId: req.user!.id,
+    });
+
+    if (!order) {
+      return res
+        .status(400)
+        .json({ ok: false, error: "ORDER_NOT_CANCELLABLE" });
     }
     return res.json({ ok: true, order });
   } catch (err) {

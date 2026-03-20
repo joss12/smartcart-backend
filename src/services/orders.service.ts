@@ -10,6 +10,7 @@ import {
   getOrderById,
   getOrderItems,
   listOrdersByUser,
+  cancelOrder,
 } from "../repositories/orders.repository";
 
 export async function createOrder(input: {
@@ -144,4 +145,21 @@ export async function getOrder(orderId: string) {
 
 export async function getMyOrders(userId: string) {
   return listOrdersByUser(userId);
+}
+
+export async function cancelMyOrder(input: {
+  orderId: string;
+  userId: string;
+}) {
+  const order = await cancelOrder(input.orderId, input.userId);
+  if (!order) return null;
+
+  await logAuditEvent({
+    eventType: "order.cancelled",
+    actorUserId: input.userId,
+    entityType: "order",
+    entityId: input.orderId,
+    metadata: { totalCents: order.total_cents },
+  });
+  return order;
 }

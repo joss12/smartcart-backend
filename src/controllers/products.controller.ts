@@ -2,6 +2,7 @@ import type { Response, NextFunction, Request } from "express";
 import type { AuthedRequest } from "../types/auth.types";
 import {
   createProduct,
+  getProductById,
   getProducts,
   updateInventory,
 } from "../services/products.service";
@@ -72,6 +73,22 @@ export async function setInventoryHandler(
       return res.status(404).json({ ok: false, error: "product not found" });
     }
 
+    return res.json({ ok: true, product });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getProductByIdHandler(
+  req: AuthedRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const product = await getProductById(req.params.id as string);
+    if (!product) {
+      return res.status(404).json({ ok: false, error: "PRODUCT_NOT_FOUND" });
+    }
     return res.json({ ok: true, product });
   } catch (err) {
     next(err);

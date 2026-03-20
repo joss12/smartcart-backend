@@ -7,6 +7,7 @@ import {
   createProductHandler,
   setInventoryHandler,
 } from "../controllers/products.controller";
+import { getProductById } from "../services/products.service";
 
 export const productsRouter = Router();
 
@@ -42,3 +43,5 @@ productsRouter.post(
   validateBody(setInventorySchema),
   setInventoryHandler,
 );
+
+productsRouter.get("/:id", getProductById);

@@ -66,8 +66,21 @@ export async function myOrdersHandler(
   next: NextFunction,
 ) {
   try {
-    const items = await getMyOrders(req.user!.id);
-    return res.json({ ok: true, items });
+    const limitRaw = req.query.limit;
+    const cursor = req.query.cursor;
+    const limit = (() => {
+      const n = Number(limitRaw ?? 20);
+      if (!Number.isFinite(n)) return 20;
+      return Math.max(1, Math.min(50, Math.floor(n)));
+    })();
+
+    const result = await getMyOrders({
+      userId: req.user!.id,
+      limit,
+      cursor: typeof cursor === "string" ? cursor : undefined,
+    });
+
+    return res.json({ ok: true, ...result });
   } catch (err) {
     next(err);
   }

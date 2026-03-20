@@ -103,18 +103,36 @@ export async function getOrderById(orderId: string) {
   return r.rows[0] ?? null;
 }
 
-export async function listOrdersByUser(userId: string) {
+export async function listOrdersByUser(input: {
+  userId: string;
+  limit: number;
+  cursor?: string;
+}) {
+  const params: any[] = [input.userId];
+  let where = `WHERE user_id = $1`;
+
+  if (input.cursor) {
+    params.push(input.cursor);
+    where += ` AND created_at < $${params.length}::timestamptz`;
+  }
+
+  params.push(input.limit);
   const r = await pool.query(
-    `
-    SELECT id, status, total_cents, currency, created_at
-    FROM orders
-    WHERE user_id = $1
-    ORDER BY created_at DESC
-    LIMIT 50
-    `,
-    [userId],
+    `SELECT id, status, total_cents, currency, created_at
+     FROM orders
+     ${where}
+     ORDER BY created_at DESC
+     LIMIT $${params.length}`,
+    params,
   );
-  return r.rows;
+
+  return {
+    items: r.rows,
+    nextCursor:
+      r.rows.length === input.limit
+        ? r.rows[r.rows.length - 1].created_at
+        : null,
+  };
 }
 
 export async function markOrderPaid(orderId: string) {

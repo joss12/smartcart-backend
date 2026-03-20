@@ -247,33 +247,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /products/{productId}:
-    get:
-      summary: Get product by ID
-      tags: [Products]
-      parameters:
-        - in: path
-          name: productId
-          required: true
-          schema: { type: string, format: uuid }
-      responses:
-        "200":
-          description: Product details
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok: { type: boolean }
-                  product:
-                    $ref: "#/components/schemas/Product"
-        "404":
-          description: Product not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
   /products/inventory/set:
     post:
       summary: Set product stock (admin only)
@@ -304,6 +277,33 @@ paths:
                     properties:
                       id: { type: string }
                       stock: { type: integer }
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /products/{productId}:
+    get:
+      summary: Get product by ID
+      tags: [Products]
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  product:
+                    $ref: "#/components/schemas/Product"
         "404":
           description: Product not found
           content:
@@ -517,15 +517,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
   /orders/my/orders:
     get:
       summary: Get my orders
       tags: [Orders]
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+        - in: query
+          name: cursor
+          schema: { type: string }
       responses:
         "200":
-          description: List of user's orders
+          description: Paginated list of user's orders
           content:
             application/json:
               schema:
@@ -536,6 +544,7 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Order"
+                  nextCursor: { type: string, nullable: true }
 
   /orders/{id}:
     get:
@@ -594,7 +603,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-
 
   /webhooks/payment:
     post:

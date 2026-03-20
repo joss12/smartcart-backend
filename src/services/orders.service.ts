@@ -143,8 +143,12 @@ export async function getOrder(orderId: string) {
   return { ...order, items };
 }
 
-export async function getMyOrders(userId: string) {
-  return listOrdersByUser(userId);
+export async function getMyOrders(input: {
+  userId: string;
+  limit: number;
+  cursor?: string;
+}) {
+  return listOrdersByUser(input);
 }
 
 export async function cancelMyOrder(input: {

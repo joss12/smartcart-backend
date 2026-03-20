@@ -6,8 +6,8 @@ import {
   listProductsHandler,
   createProductHandler,
   setInventoryHandler,
+  getProductByIdHandler,
 } from "../controllers/products.controller";
-import { getProductById } from "../services/products.service";
 
 export const productsRouter = Router();
 
@@ -27,7 +27,6 @@ const setInventorySchema = z.object({
 });
 
 productsRouter.get("/", listProductsHandler);
-
 productsRouter.post(
   "/",
   requireAuth,
@@ -35,7 +34,6 @@ productsRouter.post(
   validateBody(createProductSchema),
   createProductHandler,
 );
-
 productsRouter.post(
   "/inventory/set",
   requireAuth,
@@ -43,5 +41,4 @@ productsRouter.post(
   validateBody(setInventorySchema),
   setInventoryHandler,
 );
-
-productsRouter.get("/:id", getProductById);
+productsRouter.get("/:id", getProductByIdHandler);
